@@ -5,6 +5,13 @@
         <FileCenter />
       </v-card>
     </v-col>
+    <v-overlay :value="overlay" color="#fff" :opacity="1" style="color: #000;">
+    <v-progress-circular
+      indeterminate
+      size="64"
+    ></v-progress-circular>
+    <p style="font-size: 1.3em; display:inline; margin-left: 20px;">Now Loading...</p>
+  </v-overlay>
   </v-row>
 </template>
 
@@ -14,7 +21,8 @@ export default {
   name: 'IndexPage',
   data () {
     return {
-      logintoken: ''
+      logintoken: '',
+      overlay: true
     }
   },
   methods:{
@@ -38,8 +46,11 @@ export default {
                 "due":res.data.due
               }
               this.$store.commit("login/login_mut",resdata)
-              console.log(resdata)
+              setTimeout(() => {
+                this.overlay = false
+              }, 1200);
             } else if (res.data.status == 404) {
+              location.href="/login"
               this.$store.commit("login/login_fail",resdata)
               console.log(404)
             }

@@ -75,7 +75,6 @@ export default {
   },
   mounted () {
     this.updateTitle()
-    this.if_deploying_serv()
     this.$store.commit("login/connection")
   }
 }
