@@ -5,7 +5,7 @@ export const state = () => ({
     id: '',
     name: '',
     due: '',
-    server_org: 'server',
+    server_org: 'pc',
     domain: ''
 });
 
@@ -20,6 +20,15 @@ export const mutations = {
     login_fail(state){
         state.status = 404
     },
+    change_name(state,name) {
+        state.name = name
+    },
+    change_id(state,id) {
+        state.id = id
+    },
+    change_mail(state,mail) {
+        state.mail = mail
+    },
     connection(state){
         if (state.server_org == "server") {
             state.domain = "https://moodocs.ant-group2022.com/apps/public/api"
@@ -30,6 +39,9 @@ export const mutations = {
 };
 
 export const actions = {
+    domain({state}) {
+        return state.domain
+    }
 };
 
 export const getters = {

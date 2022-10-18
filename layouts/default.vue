@@ -35,6 +35,13 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+      <v-overlay :value="overlay" color="#fff" :opacity="1" style="color: #000;">
+        <v-progress-circular
+          indeterminate
+          size="64"
+        ></v-progress-circular>
+        <p style="font-size: 1.3em; display:inline; margin-left: 20px;">Now Loading...</p>
+      </v-overlay>
     </v-main>
   </v-app>
 </template>
@@ -49,14 +56,13 @@ export default {
       changedialog_comment: '',
       changedialog_title: '',
       title: '',
-      transition_system: true
+      transition_system: true,
+      overlay: true
     }
   },
   created() {
-    this.setworks_home()
     this.setworks_login()
     this.setworks_error()
-    this.setworks_error_upload()
   },
   methods: {
     close (dotime) {
@@ -66,10 +72,6 @@ export default {
         this.dialog = false
       }
     },
-    setworks_home() {
-      // emitで発火させたイベント名にする
-      this.$nuxt.$on('updateTitle_HOME', this.titles)
-    },
     setworks_login() {
       // emitで発火させたイベント名にする
       this.$nuxt.$on('updateTitle_LOGIN', this.titles)
@@ -78,9 +80,9 @@ export default {
       // emitで発火させたイベント名にする
       this.$nuxt.$on('login', this.error)
     },
-    setworks_error_upload() {
+    setworks_loading_screen() {
       // emitで発火させたイベント名にする
-      this.$nuxt.$on('upload', this.error)
+      this.$nuxt.$on('login', this.overlays)
     },
     titles(title) {
       this.title = title
@@ -94,7 +96,19 @@ export default {
       this.dialog = true
       this.changedialog_title = title
       this.changedialog_comment = desc
+    },
+    overlays() {
+      this.overlay = true
     }
+  },
+  mounted () {
+    setTimeout(() => {
+      if (this.$route.name == 'login') {
+        this.overlay = false
+      } else if (this.$route.name == 'index' && this.$store.state.login.status == 200) {
+        this.overlay = false
+      }
+    }, 1200);
   }
 }
 </script>

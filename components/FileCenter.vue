@@ -9,7 +9,7 @@
                     {{ item.filename }}
                 </v-expansion-panel-header>
                 <v-expansion-panel-content>
-                    <v-btn color="error" v-if="item.id > 1" @click="formdelete(item.id)">フォームの削除</v-btn>
+                    <v-btn color="error" v-if="item.id > 1" @click="hear('delete',item.id)">フォームの削除</v-btn>
                     <v-container>
                         <input
                             style="display: none"
@@ -154,7 +154,7 @@
         </v-expansion-panels>
         <v-btn style="width:100%; margin-top: 10px;" color="primary" @click="addDocuments"><v-icon>mdi-plus</v-icon>新しく請求書を追加する</v-btn>
         <div style="text-align: center; font-size: 18px; margin-top: 60px; white-space: pre-wrap;" v-html="'◉提出するファイルとその他項目に\n不備がない場合は、\nそのまま下記のボタンを押してください。'"></div>
-        <v-btn style="width:100%; margin-top: 50px; margin-bottom: 90px; height:60px; font-size: 20px;" color="purple darken-1" dark @click="upload" class="justify-center"><v-icon>mdi-file</v-icon>請求書を提出する</v-btn>
+        <v-btn style="width:100%; margin-top: 50px; margin-bottom: 90px; height:60px; font-size: 20px;" color="purple darken-1" dark @click="hear('uploader_boot')" class="justify-center"><v-icon>mdi-file</v-icon>請求書を提出する</v-btn>
         <v-dialog
       v-model="dialog"
       fullscreen
@@ -170,7 +170,8 @@
         </v-toolbar>
         <v-img src="http://flat-icon-design.com/f/f_object_154/s256_f_object_154_0bg.png" max-height="210" max-width="210" style="margin: 0 auto; margin-top: 160px;"></v-img>
         <div style="font-size: 1.3em; color:#000; width:80%;margin: 0 auto; margin-top: 10px; text-align: center;">{{ file_name }}</div>
-        <div style="font-size: 1.7em; color:#000; width:80%;margin: 0 auto; margin-top: 40px; text-align: center;">{{ Math.ceil(upload_percentage)}}%</div>
+        <div style="font-size: 1.1em; color:#000; width:80%;margin: 0 auto; margin-top: 5px; text-align: center;">{{ counter }} / {{ file.length}}</div>
+        <div style="font-size: 1.7em; color:#000; width:80%;margin: 0 auto; margin-top: 20px; text-align: center;">{{ Math.ceil(upload_percentage)}}%</div>
         
         <v-progress-linear
             v-model="upload_percentage"
@@ -182,6 +183,34 @@
         <div style="font-size: 1.1em; color:#000; width:80%;margin: 0 auto; margin-top: 40px; text-align: center;">{{ progress_words }}</div>
       </v-card>
     </v-dialog>
+    <v-dialog
+      v-model="hearing_dialog"
+      persistent
+      max-width="290"
+    >
+      <v-card>
+        <v-card-title class="text-h5">
+          {{ hear_title }}
+        </v-card-title>
+        <v-card-text>{{ hear_comment }}</v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="primary"
+            @click="boot(hear_tags)"
+          >
+            はい
+          </v-btn>
+          <v-btn
+            color="primary"
+            text
+            @click="hearing_dialog = false"
+          >
+            いいえ
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
     </v-card>
 
 </template>
@@ -191,18 +220,25 @@ export default {
         return {
             data: false,
             dialog: false,
+            counter:0,
             tool_title: '',
-            file_name: '',
+            file_name: 'Please wait...',
             itemData: ['電気校','合同会社ANT','ANT AGENT','INF','千万事屋レイ','Subir','将軍','other'],
             isUploading: false,
             panelen: 0,
             panel: [0],
             active_code: '',
             upload_percentage: 0,
-            progress_words: '',
+            progress_words: 'windo',
             file: [],
-            server_org: "server",
+            server_org: "pc",
+            activic_code: '',
             domain: "",
+            hearing_dialog: false,
+            hear_title: '',
+            hear_comment: '',
+            hear_tags: '',
+            delete_num: 0,
             itemday: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31],
             itemmonths: [1,2,3,4,5,6,7,8,9,10,11,12],
             itemyears: [],
@@ -216,6 +252,8 @@ export default {
         selectedFile() {
             this.isUploading = true;
             const file = this.$refs.input[0].files[0]
+            var S="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+            var N=16
             try{
                 this.file.forEach(function(obj){
                     if (obj.random_code == this.active_code){
@@ -250,12 +288,15 @@ export default {
             this.file.push({
                 'id': this.file.length+1,
                 'random_code': Array.from(Array(N)).map(()=>S[Math.floor(Math.random()*S.length)]).join(''),
+                'string_random_code':'',
                 'filename':'ファイルを提出',
                 'filebtn': 'ファイルを選択する',
                 'filecom': '❶.PDFファイル情報',
+                'link_token':'',
                 'name':this.$store.state.login.name,
                 'company':'',
                 'price': '',
+                'login_token':localStorage.getItem('login_token'),
                 'due':{
                     'year':'',
                     'month':'',
@@ -283,17 +324,18 @@ export default {
         logined_preparing() {
             var S="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
             var N=16
-            console.log(this.$store.state.login.status)
             if (this.$store.state.login.status == 200) {
                 this.file.push({
                     'id': this.file.length+1,
                     'random_code': Array.from(Array(N)).map(()=>S[Math.floor(Math.random()*S.length)]).join(''),
+                    'string_random_code':'',
                     'filename':'ファイルを提出',
                     'filebtn': 'ファイルを選択する',
                     'filecom': '❶.PDFファイル情報',
                     'name':this.$store.state.login.name,
                     'company':'',
                     'price': '',
+                    'login_token':localStorage.getItem('login_token'),
                     'due':{
                         'year':'',
                         'month':'',
@@ -307,6 +349,7 @@ export default {
                     'message':'',
                     'base64pdf':''
                 })
+                console.log(this.file)
             } else if (this.$store.state.login.status == 404) {
 
             }
@@ -319,17 +362,19 @@ export default {
                 data: file_info
             }).then((res) => {
                 if (res.data.status == 200) {
-                    this.$nuxt.$emit('login', '完了','ファイル提出が完了しました。')
+                    this.$nuxt.$emit('upload', '完了','ファイル提出が完了しました。')
                     this.dialog = false
+                    this.file = []
+                    this.logined_preparing()
                     return true
                 } else if (res.data.status == 404) {
                     this.dialog = false
-                    this.$nuxt.$emit('login', 'エラー','Security check failed.')
+                    this.$nuxt.$emit('upload', 'エラー','Security check failed.')
                     return false
                 }
             }).catch((res) => {
                 this.dialog = false
-                this.$nuxt.$emit('login', '通信エラー','管理者にお問い合わせください。')
+                this.$nuxt.$emit('workspace', '通信エラー','管理者にお問い合わせください。')
                 return false
             })
         },
@@ -338,14 +383,11 @@ export default {
             this.itemyears.push(dt.getFullYear())
             this.itemyears.push(dt.getFullYear()+1)
         },
-        upload() {
-            this.dialog = true
-            this.tool_title = '請求書を提出しています。'
-            this.progress_words = 'フォーム情報をチェックしています。'
-
-            this.file.forEach(function(obj){
-
-                this.file_name = obj.filename
+        upload_task(obj) {
+            console.log(obj)
+            this.file_name = obj.filename
+            this.activic_code
+            this.counter += 1
 
                 // 起点 0%
 
@@ -353,7 +395,8 @@ export default {
                     const Q1 = this.wordscheck(obj)
 
                     if (Q1 == false) {
-                        return 0 // 処理終了
+                        this.counter = 0
+                        return false // 処理終了
                     }
 
                     this.upload_percentage += 10 / this.file.length
@@ -365,66 +408,112 @@ export default {
                             "company":obj.company,
                             "price":new Intl.NumberFormat().format(obj.price),
                             "message":obj.message,
+                            "random_code":obj.random_code,
                             "due":obj.due.year + "-" + obj.due.month + "-" + obj.due.day,
-                            "now":obj.upload_date.year + "-" + obj.upload_date.month + "-" + obj.upload_date.day
+                            "now":obj.upload_date.year + "-" + obj.upload_date.month + "-" + obj.upload_date.day,
+                            "login":obj.login_token
                         }
 
                         const Q2 = this.data_insert(data_info)
 
                         if (Q2 == false) {
-                            return 0 // 処理終了
+                            this.counter = 0
+                            return false // 処理終了
                         }
 
                         this.upload_percentage += 15 / this.file.length
                         this.progress_words = 'トークンをセーブしています。'
 
+
                         setTimeout(() => {
+                            obj.link_token = this.activic_code
                             this.upload_percentage += 5 / this.file.length
                             this.progress_words = 'ファイルをサーバーへアップロードしています。'
 
                             const file_info = {
                                 "pdf":obj.base64pdf,
                                 "filename":obj.filename,
-                                "datacode":localStorage.getItem('file_upload_data_key')
+                                "datacode":obj.random_code,
+                                "login_token":obj.login_token
                             }
 
                             const Q3 = this.file_insert(file_info)
 
                             if (Q3 == false) {
-                                return 0 // 処理終了
+                                this.counter = 0
+                                return false // 処理終了
                             }
+
 
                             this.upload_percentage += 40 / this.file.length
                             this.progress_words = 'ファイル情報を組織のワークスペースへ送信中です。'
 
                             setTimeout(() => {
                                 const file = {
-                                    "name":obj.name,
                                     "company":obj.company,
                                     "price":new Intl.NumberFormat().format(obj.price),
                                     "message":obj.message,
                                     "due":obj.due.year + "-" + obj.due.month + "-" + obj.due.day,
                                     "now":obj.upload_date.year + "-" + obj.upload_date.month + "-" + obj.upload_date.day,
-                                    "link_token":localStorage.getItem('file_upload_data_key')
+                                    "link_token":obj.random_code,
+                                    "login":obj.login_token
                                 }
+
                                 const Q4 = this.workspace(file)
 
                                 if (Q4 == false) {
-                                    return 0 // 処理終了
+                                    this.counter = 0
+                                    return false // 処理終了
                                 }
+                                setTimeout(() => {
 
-                                this.upload_percentage += 30 / this.file.length
-                                this.progress_words = 'もうすぐで提出が完了します。'
+                                    this.upload_percentage += 30 / this.file.length
+                                    this.progress_words = 'もうすぐで提出が完了します。'
+
+                                    
+                                }, 1000);
                             }, 100);
-                        }, 900);
-                    }, 100);
+                        }, 2000);
+                    }, 2000);
                 }, 100);
 
+            this.counter = 0
+        },
+        hear(whats,itemcord){
+            if (whats == 'uploader_boot') {
+                this.hearing_dialog = true
+                this.hear_title = 'ファイルを提出しますか？'
+                this.hear_comment = this.file.length + '個のフォームデータがあります。そのまま提出してもよろしいでしょうか？'
+                this.hear_tags = 'uploader_boot'
+            } else if (whats == 'delete') {
+                this.hearing_dialog = true
+                this.delete_num = itemcord
+                this.hear_title = 'フォームデータを削除しますか？'
+                this.hear_comment = itemcord + '個目のフォームデータを削除します。よろしいでしょうか？'
+                this.hear_tags = 'delete'
+            }
+        },
+        boot(whats) {
+            if (whats == 'uploader_boot') {
+                this.hearing_dialog = false
+                this.upload()
+            } else if (whats == 'delete') {
+                this.hearing_dialog = false
+                this.formdelete(this.delete_num)
+            }
+        },
+        upload() {
+            this.dialog = true
+            this.tool_title = '請求書を提出しています。'
+            this.progress_words = 'フォーム情報をチェックしています。'
+
+            for(const obj of this.file){
+                setTimeout(() => {
+                    this.upload_task(obj)
+                }, 1000)
+            }
+
             this.upload_percentage = 0
-
-
-                
-            },this)
         },
         wordscheck (obj) {
             if (obj.base64pdf == '') {　// 文字スキャン PDFファイル
@@ -435,36 +524,48 @@ export default {
                 this.dialog = false
                 this.$nuxt.$emit('upload', '会社名が選択されていません。','請求する会社名を選んでください。\n該当:'+ obj.id + '番目のフォーム')
                 return false
-            } else if (obj.price == '') { // 文字スキャン 金額
-                this.dialog = false
-                this.$nuxt.$emit('upload', '金額が入力されていません。','金額を入力してください。\n該当:'+ obj.id + '番目のフォーム')
-                return false
+            } else if (obj.price == '' || obj.price.indexOf('-') != -1) { // 文字スキャン 金額
+                if (obj.price == '') {
+                    this.dialog = false
+                    this.$nuxt.$emit('upload', '金額が入力されていません。','金額を入力してください。\n該当:'+ obj.id + '番目のフォーム')
+                    return false
+                } else if (obj.price.indexOf('-') != -1) {
+                    this.dialog = false
+                    this.$nuxt.$emit('upload', '金額エラー','金額にマイナスをつけてはいけません。\n該当:'+ obj.id + '番目のフォーム')
+                    return false
+                }
             } else if (obj.due.year == '' || obj.due.month == '' || obj.due.day == '') { // 文字スキャン 期限
                 this.dialog = false
-                const body = ''
+                var body = ''
                 if (obj.due.year == '') {
                     body += '期限年が入力されていません。\n'
                     this.$nuxt.$emit('upload', '期限を入力してください。',body + '\n該当:'+ obj.id + '番目のフォーム')
+                    return false
                 } else if (obj.due.month == '') {
                     body += '期限月が入力されていません。\n'
                     this.$nuxt.$emit('upload', '期限を入力してください。',body + '\n該当:'+ obj.id + '番目のフォーム')
+                    return false
                 } else if (obj.due.day == '') {
                     body += '期限日が入力されていません。'
                     this.$nuxt.$emit('upload', '期限を入力してください。',body + '\n該当:'+ obj.id + '番目のフォーム')
+                    return false
                 }
                 return false
             } else if (obj.upload_date.year == '' || obj.upload_date.month == '' || obj.upload_date.day == '') { // 文字スキャン 発行年月日
                 this.dialog = false 
-                const body = ''
+                var body = ''
                 if (obj.upload_date.year == '') {
                     body += '発行年が入力されていません。\n'
                     this.$nuxt.$emit('upload', '請求書発行日を入力してください。',body + '\n該当:'+ obj.id + '番目のフォーム')
+                    return false
                 } else if (obj.upload_date.month == '') {
                     body += '発行月が入力されていません。\n'
                     this.$nuxt.$emit('upload', '請求書発行日を入力してください。',body + '\n該当:'+ obj.id + '番目のフォーム')
+                    return false
                 } else if (obj.upload_date.day == '') {
                     body += '発行日が入力されていません。'
                     this.$nuxt.$emit('upload', '請求書発行日を入力してください。',body + '\n該当:'+ obj.id + '番目のフォーム')
+                    return false
                 }
                 return false
             } else if (obj.message == '') { // 文字スキャン 金額
@@ -480,17 +581,19 @@ export default {
                 url: this.domain + "/uploading_data",
                 data: data_info
             }).then((res) => {
+                const signal = ''
                 if (res.data.status == 200) {
-                    localStorage.setItem('file_upload_data_key',res.data.token)
+                    this.activic_code = res.data.token
                     return res.data.token
                 } else if (res.data.status == 404) {
                     this.dialog = false
-                    this.$nuxt.$emit('login', 'エラー','Security check failed.')
+                    this.$nuxt.$emit('upload', 'エラー','Security check failed.')
+                    console.error('ログインに失敗しました。 DATA-CODE')
                     return false
                 }
             }).catch((res) => {
                 this.dialog = false
-                this.$nuxt.$emit('login', '通信エラー','管理者にお問い合わせください。')
+                this.$nuxt.$emit('upload', '通信エラー','管理者にお問い合わせください。')
                 return false
             })
         },
@@ -507,12 +610,14 @@ export default {
                     return true
                 } else if (res.data.status == 404) {
                     this.dialog = false
-                    this.$nuxt.$emit('login', 'エラー','Security check failed.')
+                    this.activic_code = ''
+                    this.$nuxt.$emit('upload', 'エラー','Security check failed.')
+                    console.error('ログインに失敗しました。 FILE-CODE')
                     return false
                 }
             }).catch((res) => {
                 this.dialog = false
-                this.$nuxt.$emit('login', '通信エラー','管理者にお問い合わせください。')
+                this.$nuxt.$emit('upload', '通信エラー','管理者にお問い合わせください。')
                 return false
             })
         },
