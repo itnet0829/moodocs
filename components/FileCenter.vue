@@ -37,7 +37,7 @@
                         </template>
                     </v-container>
                     <v-container>
-                        <div style="text-align: left; font-size: 1.0em; margin-bottom: 20px;" v-html="'❸.請求金額を入力してください。'"></div>
+                        <div style="text-align: left; font-size: 1.0em; margin-bottom: 20px; white-space: pre-wrap;" v-html="'❸.請求金額を入力してください。\n(数字専用。コンマは不要です。)'"></div>
                         <template>
                             <v-text-field
                                 label="請求金額"
