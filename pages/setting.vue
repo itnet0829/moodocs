@@ -290,6 +290,7 @@ export default {
       boot(tags) {
         if (tags == 'logout') {
           localStorage.removeItem('login_token')
+          localStorage.removeItem('loginned')
           location.href = "/"
         } else if (tags == 'name') {
           this.hearing_dialog = false
@@ -507,6 +508,7 @@ export default {
     },
     mounted () {
       this.updateTitle_HOME()
+      this.$store.commit("login/connection")
     }
 }
 </script>

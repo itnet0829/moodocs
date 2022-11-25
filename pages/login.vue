@@ -60,11 +60,14 @@ export default {
         url: this.$store.state.login.domain + "/login_mb",
         data: data
       }).then((res) => {
+        console.log(res)
         if (res.data.status == 200) {
           localStorage.setItem("login_token",res.data.random_code)
+          console.log('login ok')
           location.href = "/"
         } else if (res.data.status == 404) {
           this.$nuxt.$emit('login', 'エラー','IDまたは、パスワードが違います。')
+          console.log('login ng')
         }
       }).catch((res) => {
         console.log('failed-->'+res)

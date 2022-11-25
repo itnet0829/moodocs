@@ -22,6 +22,12 @@
         grow
       >
 
+        <v-btn value="history" @click="history_data()">
+          <span>提出履歴</span>
+
+          <v-icon>mdi-history</v-icon>
+        </v-btn>
+
         <v-btn value="upload" @click="upload()">
           <span>アップロード</span>
 
@@ -153,7 +159,8 @@ export default {
                 "name":res.data.name,
                 "id":res.data.id,
                 "email":res.data.email,
-                "due":res.data.due
+                "due":res.data.due,
+                "fix":res.data.fix
               }
               this.$store.commit("login/login_mut",resdata)
               setTimeout(() => {
@@ -196,9 +203,15 @@ export default {
         }
         this.overlay = false
         setTimeout(() => {
-          if (this.$store.state.login.status == 200) {
-            this.snackbar = true
-            this.text = this.$store.state.login.name + "としてログインしました。"
+          if (this.$store.state.login.status == 200 && this.$store.state.login.timing == 0) {
+            if (localStorage.getItem('loginned')) {
+              console.log('loginned')
+            } else {
+              localStorage.setItem('loginned',"true")
+              this.snackbar = true
+              this.text = this.$store.state.login.name + "としてログインしました。"
+              this.$store.commit("login/timing_update")
+            }
           }
         }, 100);
       }, 1200);
