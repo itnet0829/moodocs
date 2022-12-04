@@ -231,7 +231,7 @@ export default {
             upload_percentage: 0,
             progress_words: 'windo',
             file: [],
-            server_org: "pc",
+            server_org: "server",
             activic_code: '',
             domain: "",
             hearing_dialog: false,
