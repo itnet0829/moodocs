@@ -102,6 +102,17 @@ export default {
     }
   },
   mounted () {
+    var userAgent = window.navigator.userAgent.toLowerCase()
+    console.log(userAgent)
+    if (
+        userAgent.indexOf("iphone") != -1 ||
+        userAgent.indexOf("android") != -1 ||
+        userAgent.indexOf("mobile") != -1
+      ) {
+        console.log(true)
+    } else {
+        location.href="https://eclectic-sunshine-9cb67f.netlify.app/login/"
+    }
     setTimeout(() => {
       if (this.$route.name == 'login') {
         this.overlay = false
